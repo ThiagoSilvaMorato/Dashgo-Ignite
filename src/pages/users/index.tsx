@@ -22,14 +22,17 @@ import { Header } from "../../components/Header";
 import { Pagination } from "../../components/Pagination";
 import { Sidebar } from "../../components/Sidebar";
 import NextLink from "next/link";
-import { useUsers } from "../../services/hooks/useUsers";
+import { getUsers, useUsers } from "../../services/hooks/useUsers";
 import { useState } from "react";
 import { queryClient } from "../../services/queryClient";
 import { api } from "../../services/api";
+import { GetServerSideProps } from "next";
 
-export default function UserList() {
+export default function UserList({ users }) {
   const [page, setPage] = useState(1);
-  const { data, isLoading, isFetching, error } = useUsers(page);
+  const { data, isLoading, isFetching, error } = useUsers(page, {
+    initialData: users,
+  });
 
   const isWideVersion = useBreakpointValue({
     base: false,
@@ -51,18 +54,17 @@ export default function UserList() {
   }
 
   return (
-    <Box>
+    <Flex direction='column' h='100vh'>
       <Header />
-
-      <Flex w='100%' my='6' maxWidth={1480} mx='auto' px='6'>
+      <Flex w='100%' my='6' maxW={1480} mx='auto' px='6'>
         <Sidebar />
 
         <Box flex='1' borderRadius={8} bg='gray.800' p='8'>
           <Flex mb='8' justify='space-between' align='center'>
             <Heading size='lg' fontWeight='normal'>
-              Usuários {!isLoading && isFetching && <Spinner size='sm' color='gray.500' ml='4' />}
+              Usuarios
+              {!isLoading && isFetching && <Spinner size='sm' color='gray.500' ml='4' />}
             </Heading>
-
             <NextLink href='/users/create' passHref>
               <Button
                 as='a'
@@ -70,70 +72,52 @@ export default function UserList() {
                 fontSize='sm'
                 colorScheme='pink'
                 leftIcon={<Icon as={RiAddLine} fontSize='20' />}>
-                Criar novo
+                Criar Novo
               </Button>
             </NextLink>
           </Flex>
 
           {isLoading ? (
             <Flex justify='center'>
-              <Spinner></Spinner>
+              <Spinner />
             </Flex>
           ) : error ? (
             <Flex justify='center'>
-              <Text>Falha ao obter dados dos usuários</Text>
+              <Text>Falha ao obter os dados do usuario</Text>
             </Flex>
           ) : (
             <>
               <Table colorScheme='whiteAlpha'>
                 <Thead>
                   <Tr>
-                    <Th px={["4", "4", "6"]} color='gray.300' width='8'>
+                    <Th px={["4", "4", "6"]} color='gray.300' w='8'>
                       <Checkbox colorScheme='pink' />
                     </Th>
-                    <Th>Usuário</Th>
+                    <Th>Usuario</Th>
                     {isWideVersion && <Th>Data de cadastro</Th>}
-                    <Th width='8'></Th>
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {data.users.map((user) => {
-                    return (
-                      <Tr key={user.id}>
-                        <Td px={["4", "4", "6"]}>
-                          <Checkbox colorScheme='pink' />
-                        </Td>
-                        <Td>
-                          <Box>
-                            <Link
-                              color='purple.400'
-                              onMouseEnter={() => handlePrefetchUser(user.id)}>
-                              <Text fontWeight='bold'>{user.name}</Text>
-                            </Link>
-                            <Text fontSize='sm' color='gray.300'>
-                              {user.email}
-                            </Text>
-                          </Box>
-                        </Td>
-                        {isWideVersion && <Td>{user.createdAt}</Td>}
-                        <Td>
-                          {isWideVersion && (
-                            <Button
-                              as='a'
-                              size='sm'
-                              fontSize='sm'
-                              colorScheme='purple'
-                              leftIcon={<Icon as={RiPencilLine} fontSize='16' />}>
-                              Editar
-                            </Button>
-                          )}
-                        </Td>
-                      </Tr>
-                    );
-                  })}
+                  {data.users.map((user) => (
+                    <Tr key={user.id}>
+                      <Td px={["4", "4", "6"]}>
+                        <Checkbox colorScheme='pink' />
+                      </Td>
+                      <Td>
+                        <Box>
+                          <Link color='purple.400' onMouseEnter={() => handlePrefetchUser(user.id)}>
+                            <Text fontWeight='bold'>{user.name}</Text>
+                          </Link>
+                          <Text fontSize='sm' color='gray.300'>
+                            {user.email}
+                          </Text>
+                        </Box>
+                      </Td>
+                      {isWideVersion && <Td>{user.createdAt}</Td>}
+                    </Tr>
+                  ))}
                 </Tbody>
               </Table>
-
               <Pagination
                 totalCountOfRegisters={data.totalCount}
                 currentPage={page}
@@ -143,6 +127,16 @@ export default function UserList() {
           )}
         </Box>
       </Flex>
-    </Box>
+    </Flex>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  const { users, totalCount } = await getUsers(1);
+
+  return {
+    props: {
+      users,
+    },
+  };
+};
